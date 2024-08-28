@@ -6,6 +6,9 @@
  */
 
 #include "obfuscator_config.h"
+#include <syslog.h>
+
+char sep[] = "-";
 
 void InitConfigLine(ConfigLine *cfg) {
 	cfg->depth=0;
@@ -23,7 +26,7 @@ void InitNode(TreePath *node) {
 }
 /*
  * Search by node path in the current children array
- * TODO: Sort each children array at build and use bsearch 
+ * TODO: Sort each children array at build and use bsearch
  * to find quickly the children node
  */
 TreePath *search_node(const char path[MAX_NODE_PATH_SIZE], TreePath *tree)
@@ -31,7 +34,7 @@ TreePath *search_node(const char path[MAX_NODE_PATH_SIZE], TreePath *tree)
 	for (int i=0; i<tree->childrenNumber; i++) {
 		TreePath *node = tree->children[i];
 		if (strncmp(node->nodePath, path, MAX_NODE_PATH_SIZE)==0)
-		       return node;	
+		       return node;
 	}
 	return NULL;
 }
@@ -40,7 +43,7 @@ TreePath *search_node(const char path[MAX_NODE_PATH_SIZE], TreePath *tree)
  * Print recursively the tree path
  */
 void print_tree_path(TreePath *tree)
-{	
+{
 	for (int i=0; i<(tree->depth-1)*5; i++)
 		printf(" ");
 	if (tree->depth != 0)
@@ -64,7 +67,6 @@ int replace_path(char *res, const char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZ
 	} else {
 		TreePath *child_node = search_node(fullPath[tree->depth+1], tree);
 		if (child_node == NULL) {
-			res[0]='\0';
 			return ERROR_NODE_NOT_FOUND;
 		} else {
 			// Compute available bytes (avb) in res and truncate if it's necessary
@@ -144,7 +146,7 @@ int parse_line(char chunk[MAX_LINE_SIZE], ConfigLine *cfg) {
 	int depth=1; // We start by 1 because root is 0
 	char nodePath[MAX_NODE_PATH_SIZE] = {0};
 	char pathTag[MAX_NODE_PATH_SIZE] = {0};
-	
+
 	int i=0;
 	if (iseol(chunk[0]))
 		return SKIP_NEW_LINE;
@@ -158,8 +160,8 @@ int parse_line(char chunk[MAX_LINE_SIZE], ConfigLine *cfg) {
 	}
 	// Nothing is following after one or multiple '>'
 	if (depth > 0 && iseol(chunk[i]))
-		return BAD_CONFIGURATION; 
-	
+		return BAD_CONFIGURATION;
+
 	int j=0, state=PATH_FILLING;
 	for (; i<MAX_LINE_SIZE; i++) {
 
@@ -187,7 +189,7 @@ int parse_line(char chunk[MAX_LINE_SIZE], ConfigLine *cfg) {
 }
 
 /*
-	Free recursivly a tree structure until the root node (included) 	
+	Free recursivly a tree structure until the root node (included)
 */
 void free_config(TreePath *tree) {
 	// Free children node recursivly
@@ -236,7 +238,7 @@ TreePath *load_config(const char *filename) {
 	InitConfigLine(cfg);
 	InitBuildCtx(ctx);
 
-	int	ret=0, ln=1; 
+	int	ret=0, ln=1;
 	char chunk[MAX_LINE_SIZE] = {0};
 
 	while (fgets(chunk, sizeof(chunk), fp) != NULL) {
@@ -292,24 +294,22 @@ TreePath *load_config(const char *filename) {
 /*
 	Serialize the path file to an array from splited directory/file
 */
-void serialize_path(char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE], char* raw_path) {
-	
+void serialize_path(char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE], char* path) {
+
 	char delim[] = "/";
 	int depth=1; // depth 0 is root, therefore this part of path is empty
-
-	// Saved the original buffer (edited by strtok)	
-	char raw_path_cpy[MAX_LINE_SIZE] = {0};
-	strncpy(raw_path_cpy, raw_path, MAX_LINE_SIZE);
-
-	char *ptr = strtok(raw_path, "/");
-	while (ptr != NULL) {
-		strncpy(fullPath[depth++], ptr, MAX_NODE_PATH_SIZE);
-		ptr = strtok(NULL, delim);
+	char *raw_path = strdup(path);
+	if (raw_path != NULL) {
+		char *ptr = strtok(raw_path, "/");
+		while (ptr != NULL) {
+			strncpy(fullPath[depth++], ptr, MAX_NODE_PATH_SIZE);
+			ptr = strtok(NULL, delim);
+		}
+		free(raw_path);
 	}
-	strncpy(raw_path, raw_path_cpy, MAX_LINE_SIZE);
 }
 
-int main(int argc, char *argv[]) {
+int main_test(int argc, char *argv[]) {
 	if (argc !=3) {
 		printf("Bad number of argument\n");
 		return EINVAL;
@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
 	}
 	TreePath *tree = load_config(argv[1]);
 	if (!tree)
-		return EINVAL; 
+		return EINVAL;
 
 	char res[MAX_LINE_SIZE] = {0};
 	char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE] = {0};

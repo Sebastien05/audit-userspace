@@ -23,7 +23,7 @@
 
 CONFIG_CLEAN_FILES = *.loT *.rej *.orig
 
-SUBDIRS = af_unix remote syslog filter
+SUBDIRS = af_unix remote syslog syslog-obfuscator filter
 if ENABLE_EXPERIMENTAL
 SUBDIRS += ids statsd
 endif

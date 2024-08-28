@@ -51,4 +51,10 @@ typedef struct ctx_t {
         char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE];
 } BuildCtx;
 
-char sep[] = "-";
+TreePath *load_config(const char *filename);
+
+void serialize_path(char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE], char* raw_path);
+
+int replace_path(char *res, const char fullPath[MAX_DIR_DEPTH][MAX_NODE_PATH_SIZE],  TreePath *tree);
+
+void print_tree_path(TreePath *tree);
